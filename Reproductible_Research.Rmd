@@ -1,0 +1,163 @@
+---
+title: "Reproducible_Research"
+author: "Six_Paths"
+date: "12 octobre 2018"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+#### Reproductible Research ####
+
+## === Week 1 === ##
+
+# Loading and preprocessing the data
+
+### 1. Get data 
+
+```{r echo=TRUE}
+  setwd("C:/Users/686004/Desktop/Six_Paths/D_S")
+  library(data.table)
+  download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", 
+                destfile = "Week_2/Activity_Monitoring.zip", mode="wb")
+  unzip(zipfile="Week_2/Activity_Monitoring.zip",exdir="Week_2")
+  
+  ## Loading the data
+  data_AM <- data.table::fread("Week_2/activity.csv")
+```
+
+### 2. Process/transform the data into a format suitable for analysis
+
+```{r echo=TRUE}
+  ## Processing the data
+  data_AM <- as.data.frame(data_AM)
+  data_AM$date <- as.Date(as.character(data_AM$date), format ="%Y-%m-%d")
+  head(data_AM)  
+```
+
+
+# Mean of total number of steps taken per day?
+
+### 1. Histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+  total_steps_days <- aggregate(steps~(as.Date(date)), 
+                          data=data_AM, FUN=sum, na.rm=TRUE)
+  hist(total_steps_days$steps, col = "darkmagenta",
+       main = "Total number steps taken each day",
+       xlab = "Steps per day")
+  head(total_steps_days)
+```
+
+### 2. Mean and median steps taken each day
+
+```{r, echo=TRUE}
+
+  mean(total_steps_days$steps)
+  median(total_steps_days$steps)
+
+```
+
+### 3. Time series plot of the average number of steps taken
+
+```{r, echo=TRUE}
+
+  average_steps_days <- aggregate(steps~interval,
+                                  data = data_AM, FUN = mean, na.rm=TRUE)
+  plot(average_steps_days, type="l", col  ="darkgreen",
+       main = "Average steps taken in 5-minute interval",
+       xlab = "5-minutes interval", ylab = "Steps average")
+  head(average_steps_days)
+```
+
+# Daily activity pattern's average
+
+### 1. The 5-minute interval, on average across all the days, contains the maximum number of steps?
+
+```{r, echo=TRUE}
+
+  average_steps_days[which.max(average_steps_days$steps), 1]
+
+```
+
+### 2.  Total number of missing values in the dataset 
+
+```{r, echo=TRUE}
+
+  sum(is.na(data_AM))
+
+```
+
+# Imputing missing values
+
+### 1. New dataframe with filling missing data
+
+```{r, echo=TRUE}
+  
+  data_AM_fillNA <- data_AM
+  data_AM_fillNA[is.na(data_AM_fillNA$steps), 1] <- mean(data_AM$steps, 
+                                                         na.rm = TRUE)
+  
+```
+
+### 2. Histogram of the total number of steps taken each day
+  
+```{r, echo=TRUE}
+  
+  total_steps_days_fillNA <- aggregate(steps~(as.Date(date)), 
+                                data=data_AM_fillNA, FUN=sum, na.rm=TRUE)
+  hist(total_steps_days_fillNA$steps, col = "darkmagenta",
+       main = "Total number steps taken each day",
+       xlab = "Steps per day")
+  
+```
+
+### 3. Mean and median steps taken each day
+ 
+```{r, echo=TRUE}
+
+  mean(total_steps_days_fillNA$steps)
+  median(total_steps_days_fillNA$steps)
+  
+```
+
+### 4. Create factor variable with two levels : "weekday" or "weekend" 
+
+```{r, echo=TRUE}
+    
+  data_AM_fillNA$week_day_end <- ifelse ((weekdays(as.Date(data_AM_fillNA$date)) %in% c('samedi', 'dimanche')),"weekend", "weekday")
+  head(data_AM_fillNA)
+  
+```
+
+# Check differences in activity patterns between weekdays and weekends
+
+### 1. New factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day
+
+```{r, echo=TRUE}
+  
+  average_steps_days_week <- aggregate(steps~ interval + week_day_end, 
+                                       data=data_AM_fillNA, FUN=mean,
+                                       na.rm=TRUE)
+  head(average_steps_days_week)
+```
+
+### 2. Panel time series plot of the 5-minute interval (average) number of steps taken, averaged across all weekday days or weekend days. 
+
+```{r, echo=TRUE}
+
+  library(lattice)
+  xyplot(steps ~ interval | week_day_end, average_steps_days_week, 
+         type="l", lwd=1, layout=c(1,2),
+         xlab="Interval", ylab="Number of steps")
+  
+```
+
+  
